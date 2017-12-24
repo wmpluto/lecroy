@@ -14,7 +14,7 @@ class Wave:
         self.fs = sample_frequency
         self.ds = data_rate
         self.div = div
-        self.code = code
+        self.code = code 
 
         self.readdata(file_path)
 
@@ -64,7 +64,7 @@ class Wave:
         dig = [self.digital[0]]
         cnt = [0]
         l = len(self.digital)
-        window = self.fs / self.ds / self.div / (2 if self.code else 1)
+        window = self.fs / self.ds / self.div / (2 if self.code == 'MAN' else 1)
         for i in range(0, l):
             if self.digital[i] == dig[-1]:
                 cnt[-1] += 1
@@ -76,8 +76,9 @@ class Wave:
                 dig.append(self.digital[i])
                 cnt.append(1) 
         self.digital = dig
-
+        
         self.data_type = 1
+        self.log()
         return self
 
     def locate(self, sfid='1001'):
@@ -113,6 +114,10 @@ class Wave:
         self.data_type = 1
         return hex(int(self.listtostr(self.digital),2))
 
+    def log(self):
+        if self.data_type:
+            print(self.digital)
+
     def listtostr(self, l):
         return ''.join([str(i) for i in l])
 
@@ -122,7 +127,7 @@ def main():
     data_rate = 4
     code = 'MAN'
     div = 100
-    rf = 1
+    rf = 0
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hf:", ["rf", "lf", "sf=","dr=","help", "code=","div="])
@@ -132,7 +137,7 @@ def main():
 
     for o, a in opts:
         if o in ("-h", "--help"):
-            print("no help info")
+            print("wave.py -f file_path --sf sample_frequency --dr data_rate --code MAN --div 100 --lf")
             sys.exit()
         elif o in ("-f"):
             file_path = a
@@ -158,7 +163,8 @@ def main():
                 .digitize()\
                 .locate()\
                 .decode()\
-                .bittohex())
+                .bittohex()
+                )
     else:
         plt.figure
         original_wave = Wave(file_path, sample_frequency, data_rate, code, div)
