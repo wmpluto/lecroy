@@ -116,7 +116,7 @@ class Wave:
 
     def log(self):
         if self.data_type:
-            print(self.digital)
+            print(self.listtostr(self.digital))
 
     def listtostr(self, l):
         return ''.join([str(i) for i in l])
