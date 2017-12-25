@@ -10,29 +10,31 @@ class Wave:
     digital = []
     data_type = 0
 
-    def __init__(self, file_path, sample_frequency=50000, data_rate=4, code='MAN', div=100):
+    def __init__(self, file_path, sample_frequency=50000000, data_rate=4000, code='MAN', div=100):
         self.fs = sample_frequency
         self.ds = data_rate
         self.div = div
-        self.code = code 
+        self.code = code
+        self.deltat = 1/self.fs
 
         self.readdata(file_path)
 
     def readdata(self, path):
         with open(path, 'r') as file:
-            if not self.fs:
-                # get sample frequency from file
-                for line in range(0, 5):
-                    print(line)
-                    if 'sample rate' in line:
-                        *rest, self.fs = line.split(',')
-                        self.fs = int(self.fs)
+            # get sample frequency from file
+            self.deltat = 0
+            for i in range(0, 15):
+                line = file.readline()
+                if i == 10 or i == 11:
+                    self.deltat = float(line.split(',')[0]) - self.deltat
+            self.fs = int(1/self.deltat)
+            print("frequency: ", self.fs)
 
             i = 0
             for line in file.readlines():
                 try:
                     if i % self.div == 0:
-                        self.analog.append(float(line))
+                        self.analog.append(float(line.split(',')[1]))
                     i += 1
                 except:
                     pass
@@ -65,6 +67,8 @@ class Wave:
         cnt = [0]
         l = len(self.digital)
         window = self.fs / self.ds / self.div / (2 if self.code == 'MAN' else 1)
+        print("window count: ", window)
+        print("window time: %fms" % (window * self.div * self.deltat * 1000))
         for i in range(0, l):
             if self.digital[i] == dig[-1]:
                 cnt[-1] += 1
@@ -75,6 +79,7 @@ class Wave:
 
                 dig.append(self.digital[i])
                 cnt.append(1) 
+        print(cnt)
         self.digital = dig
         
         self.data_type = 1
@@ -123,21 +128,22 @@ class Wave:
 
 def main():
     file_path = 'test.csv'
-    sample_frequency = 50000
-    data_rate = 4
+    sample_frequency = 50000000
+    data_rate = 4000
     code = 'MAN'
+    sfid = '1001'
     div = 100
     rf = 0
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hf:", ["rf", "lf", "sf=","dr=","help", "code=","div="])
+        opts, args = getopt.getopt(sys.argv[1:], "hf:", ["rf", "lf", "sf=","dr=","help", "code=","sfid=","div="])
     except getopt.GetoptError as err:
         print("error input")
         return
 
     for o, a in opts:
         if o in ("-h", "--help"):
-            print("wave.py -f file_path --sf sample_frequency --dr data_rate --code MAN --div 100 --lf")
+            print("wave.py -f file_path --sf sample_frequency --dr data_rate --code MAN --sfid 10 --div 100 --lf")
             sys.exit()
         elif o in ("-f"):
             file_path = a
@@ -149,6 +155,8 @@ def main():
             code = a
         elif o in ("--div"):
             div = int(a)
+        elif o in ("--sfid"):
+            sfid = a
         elif o =="--lf":
             rf = 0
         elif o =="--rf":
@@ -161,7 +169,7 @@ def main():
                 #.makezero()\
                 #.lowpass()\
                 .digitize()\
-                .locate()\
+                .locate(sfid)\
                 .decode()\
                 .bittohex()
                 )
@@ -174,7 +182,7 @@ def main():
                 .lowpass()
         plt.plot(analog_wave.analog, 'y')
         digital_wave = analog_wave.digitize()\
-                .locate()\
+                .locate(sfid)\
                 .decode()
         plt.plot(analog_wave.analog, 'r')
         print(digital_wave.bittohex())
